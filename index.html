@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criador de Gráfico de Pirâmide Personalizável</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    body {
+        font-family: sans-serif;
+        padding: 20px;
+        transition: background-color 0.3s;
+        background-color: #f0f0f0; 
+    }
+    /* Esconde o app por padrão */
+    .app-container {
+        display: none; 
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .top-panel {
+        display: flex;
+        justify-content: space-around;
+        gap: 20px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+    }
+    .controls {
+        display: flex;
+        flex-direction: column;
+        width: 220px;
+    }
+    #form-container {
+        display: flex;
+        flex-direction: column;
+        width: 300px;
+        max-height: 250px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    .control-group {
+        margin-bottom: 15px;
+    }
+    .control-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    .control-group input[type="color"] {
+        width: 100%;
+        height: 30px;
+        padding: 0;
+        border: 1px solid #ccc;
+        cursor: pointer;
+    }
+    .chart-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+    #chart-title {
+        margin-bottom: 20px;
+        min-height: 28px;
+        text-align: center;
+    }
+    #chart-description {
+        margin-top: 20px;
+        max-width: 800px;
+        text-align: center;
+        min-height: 1.2em;
+        white-space: pre-wrap;
+    }
+    .main-container {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        justify-content: center;
+    }
+    #pyramid-container {
+        width: 400px;
+        height: 346.41px;
+        position: relative;
+    }
+    .band-container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+    .band {
+        width: 100%;
+        height: 100%;
+        clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+    .band-percentage {
+        position: absolute;
+        top: 50%;
+        left: 15px;
+        transform: translateY(-50%);
+        font-size: 0.9em;
+        font-weight: bold;
+        color: white;
+        text-shadow: 1px 1px 2px black;
+        pointer-events: none;
+    }
+    #names-container, #descriptions-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        height: 346.41px;
+    }
+    .band-name {
+        display: flex;
+        align-items: center;
+        width: 150px;
+        word-wrap: break-word;
+    }
+    .description {
+        padding: 5px;
+        border-left: 2px solid #ccc;
+        word-wrap: break-word;
+        width: 200px;
+        display: flex;
+        align-items: flex-start;
+        white-space: pre-wrap;
+    }
+    .input-group {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #eee;
+        border-radius: 5px;
+    }
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    .input-group input, .input-group textarea {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+    .color-picker-group {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-top: 8px;
+    }
+    .color-control {
+       width: 48%;
+    }
+    .color-control label {
+        font-size: 0.8em;
+        margin-bottom: 3px;
+        font-weight: bold;
+    }
+    .color-control input[type="color"]{
+        width: 100%;
+        height: 25px;
+    }
+    #export-btn {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+    #export-btn:hover {
+        background-color: #218838;
+    }
+    .hidden {
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="app-container" id="app-container">
+    <div class="top-panel">
+        <div class="controls">
+            <div class="control-group">
+                <label for="chart-title-input">Título do Gráfico:</label>
+                <input type="text" id="chart-title-input">
+                <label for="title-color-input">Cor:</label>
+                <input type="color" id="title-color-input" value="#000000">
+            </div>
+            <div class="control-group">
+                <label for="chart-description-input">Descrição do Gráfico:</label>
+                <textarea id="chart-description-input" rows="4"></textarea>
+                <label for="desc-color-input">Cor:</label>
+                <input type="color" id="desc-color-input" value="#333333">
+            </div>
+            <div class="control-group">
+                <label for="percentage-color-input">Cor das Porcentagens:</label>
+                <input type="color" id="percentage-color-input" value="#FFFFFF">
+            </div>
+            <div class="control-group">
+                <label for="bg-color-input">Cor do Fundo do Gráfico:</label>
+                <input type="color" id="bg-color-input" value="#FFFFFF">
+            </div>
+            <div class="control-group">
+                <label for="bands">Número de Faixas:</label>
+                <input type="number" id="bands" min="1" value="5">
+            </div>
+            <div class="control-group">
+                <label for="show-percentage-input" style="display: inline-flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="show-percentage-input" checked> Exibir Porcentagens
+                </label>
+            </div>
+            <button onclick="createPyramid()">Criar/Atualizar Pirâmide</button>
+            <button id="export-btn" onclick="exportChartAsImage()">Exportar como Imagem</button>
+        </div>
+        <div id="form-container"></div>
+    </div>
+    
+    <div class="chart-area" id="chart-to-export">
+        <h2 id="chart-title"></h2>
+        <div class="main-container">
+            <div id="names-container"></div>
+            <div id="pyramid-container"></div>
+            <div id="descriptions-container"></div>
+        </div>
+        <p id="chart-description"></p>
+    </div>
+</div>
+
+
+<script>
+    // --- LÓGICA DE SEGURANÇA ---
+    const allowedOrigin = "https://omniholopanto.blogspot.com"; // URL do seu blog já configurado
+    const appContainer = document.getElementById('app-container');
+
+    window.addEventListener("message", (event) => {
+        if (event.origin !== allowedOrigin) {
+            console.warn("Mensagem recebida de uma origem não permitida:", event.origin);
+            return;
+        }
+
+        if (event.data === "showPyramidTool") {
+            console.log("Acesso autorizado. Exibindo a ferramenta.");
+            appContainer.style.display = 'block';
+            initialize(); 
+        }
+    }, false);
+
+
+    // --- ELEMENTOS DE CONTROLE ---
+    const titleInput = document.getElementById('chart-title-input');
+    const titleColorInput = document.getElementById('title-color-input');
+    const descriptionInput = document.getElementById('chart-description-input');
+    const descColorInput = document.getElementById('desc-color-input');
+    const percentageColorInput = document.getElementById('percentage-color-input');
+    const bgColorInput = document.getElementById('bg-color-input');
+    const chartTitle = document.getElementById('chart-title');
+    const chartDescription = document.getElementById('chart-description');
+    const chartArea = document.getElementById('chart-to-export');
+    const showPercentageInput = document.getElementById('show-percentage-input');
+
+    // ... (O resto do JavaScript da ferramenta permanece exatamente o mesmo) ...
+
+    function createPyramid() {
+        const numBands = parseInt(document.getElementById('bands').value);
+        const pyramidContainer = document.getElementById('pyramid-container');
+        const namesContainer = document.getElementById('names-container');
+        const descriptionsContainer = document.getElementById('descriptions-container');
+        const formContainer = document.getElementById('form-container');
+        const containerWidth = 400;
+        const containerHeight = 346.41;
+        const totalArea = (containerWidth * containerHeight) / 2;
+
+        pyramidContainer.innerHTML = '';
+        namesContainer.innerHTML = '';
+        descriptionsContainer.innerHTML = '';
+        formContainer.innerHTML = '';
+
+        const bandHeight = containerHeight / numBands;
+
+        for (let i = 0; i < numBands; i++) {
+            const bandContainer = document.createElement('div');
+            bandContainer.classList.add('band-container');
+            const topY = i * bandHeight;
+            const topWidth = (topY / containerHeight) * containerWidth;
+            const bottomY = (i + 1) * bandHeight;
+            const bottomWidth = (bottomY / containerHeight) * containerWidth;
+            const bandArea = ((topWidth + bottomWidth) / 2) * bandHeight;
+            const percentage = (bandArea / totalArea) * 100;
+
+            bandContainer.style.top = `${topY}px`;
+            bandContainer.style.left = `${(containerWidth - bottomWidth) / 2}px`;
+            bandContainer.style.width = `${bottomWidth}px`;
+            bandContainer.style.height = `${bandHeight}px`;
+
+            const band = document.createElement('div');
+            band.classList.add('band');
+            band.style.backgroundColor = `hsl(${i * (360 / numBands)}, 70%, 50%)`;
+            band.style.clipPath = `polygon(${((bottomWidth - topWidth) / 2) / bottomWidth * 100}% 0, ${100 - (((bottomWidth - topWidth) / 2) / bottomWidth * 100)}% 0, 100% 100%, 0% 100%)`;
+            
+            const bandPercentage = document.createElement('div');
+            bandPercentage.classList.add('band-percentage');
+            bandPercentage.textContent = `${percentage.toFixed(1)}%`;
+            bandPercentage.style.color = percentageColorInput.value;
+            
+            if (!showPercentageInput.checked) {
+                bandPercentage.classList.add('hidden');
+            }
+
+            bandContainer.appendChild(band);
+            bandContainer.appendChild(bandPercentage);
+            pyramidContainer.appendChild(bandContainer);
+
+            const bandName = document.createElement('div');
+            bandName.classList.add('band-name');
+            bandName.id = `band-name-${i}`;
+            bandName.style.height = `${bandHeight}px`;
+            namesContainer.appendChild(bandName);
+
+            const description = document.createElement('div');
+            description.classList.add('description');
+            description.id = `description-${i}`;
+            description.style.height = `${bandHeight}px`;
+            descriptionsContainer.appendChild(description);
+
+            const inputGroup = document.createElement('div');
+            inputGroup.classList.add('input-group');
+
+            const nameLabel = document.createElement('label');
+            nameLabel.textContent = `Nome da Faixa ${i + 1}:`;
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.oninput = () => { document.getElementById(`band-name-${i}`).textContent = nameInput.value; };
+
+            const descLabel = document.createElement('label');
+            descLabel.textContent = `Descrição da Faixa ${i + 1}:`;
+            const descInput = document.createElement('textarea');
+            descInput.oninput = () => { document.getElementById(`description-${i}`).textContent = descInput.value; };
+
+            const colorPickerGroup = document.createElement('div');
+            colorPickerGroup.classList.add('color-picker-group');
+            
+            const nameColorControl = document.createElement('div');
+            nameColorControl.classList.add('color-control');
+            const nameColorLabel = document.createElement('label');
+            nameColorLabel.textContent = 'Cor Nome:';
+            const nameColorInput = document.createElement('input');
+            nameColorInput.type = 'color';
+            nameColorInput.value = '#000000';
+            nameColorInput.title = 'Cor do nome da faixa';
+            nameColorInput.oninput = () => { document.getElementById(`band-name-${i}`).style.color = nameColorInput.value; };
+            nameColorControl.appendChild(nameColorLabel);
+            nameColorControl.appendChild(nameColorInput);
+
+            const descColorControl = document.createElement('div');
+            descColorControl.classList.add('color-control');
+            const descColorLabel = document.createElement('label');
+            descColorLabel.textContent = 'Cor Desc.:';
+            const bandDescColorInput = document.createElement('input');
+            bandDescColorInput.type = 'color';
+            bandDescColorInput.value = '#000000';
+            bandDescColorInput.title = 'Cor da descrição da faixa';
+            bandDescColorInput.oninput = () => { document.getElementById(`description-${i}`).style.color = bandDescColorInput.value; };
+            descColorControl.appendChild(descColorLabel);
+            descColorControl.appendChild(bandDescColorInput);
+
+            colorPickerGroup.appendChild(nameColorControl);
+            colorPickerGroup.appendChild(descColorControl);
+
+            inputGroup.appendChild(nameLabel);
+            inputGroup.appendChild(nameInput);
+            inputGroup.appendChild(descLabel);
+            inputGroup.appendChild(descInput);
+            inputGroup.appendChild(colorPickerGroup);
+            formContainer.appendChild(inputGroup);
+            
+            document.getElementById(`band-name-${i}`).style.color = nameColorInput.value;
+            document.getElementById(`description-${i}`).style.color = bandDescColorInput.value;
+        }
+    }
+
+    function exportChartAsImage() {
+        const chartElement = document.getElementById('chart-to-export');
+        
+        html2canvas(chartElement, {
+            backgroundColor: chartElement.style.backgroundColor || '#FFFFFF',
+            useCORS: true
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const filename = (chartTitle.textContent.trim().replace(/\s+/g, '_') || 'grafico_piramide') + '.png';
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
+    function togglePercentages() {
+        const percentageElements = document.querySelectorAll('.band-percentage');
+        percentageElements.forEach(el => {
+            if (showPercentageInput.checked) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+    }
+
+    titleInput.oninput = () => { chartTitle.textContent = titleInput.value; };
+    titleColorInput.oninput = () => { chartTitle.style.color = titleColorInput.value; };
+    descriptionInput.oninput = () => { chartDescription.textContent = descriptionInput.value; };
+    descColorInput.oninput = () => { chartDescription.style.color = descColorInput.value; };
+    bgColorInput.oninput = () => { chartArea.style.backgroundColor = bgColorInput.value; };
+    percentageColorInput.oninput = () => {
+        document.querySelectorAll('.band-percentage').forEach(el => el.style.color = percentageColorInput.value);
+    };
+    showPercentageInput.onchange = togglePercentages;
+
+    function initialize() {
+        titleInput.value = "Título do Gráfico";
+        chartTitle.textContent = titleInput.value;
+        chartTitle.style.color = titleColorInput.value;
+
+        descriptionInput.value = "Descrição detalhada do gráfico pode ser inserida aqui.\nÉ possível usar quebras de linha.";
+        chartDescription.textContent = descriptionInput.value;
+        chartDescription.style.color = descColorInput.value;
+        
+        chartArea.style.backgroundColor = bgColorInput.value;
+
+        createPyramid();
+    }
+</script>
+
+</body>
+</html>
